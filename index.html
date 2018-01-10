@@ -5,11 +5,11 @@ A minimalist viewer for Battlecode 2018 replay files.
 General TODOs:
     - Make sure we're not making off-by-one-turn errors with when things should be rendered
     - Visualize Mars at all
-    - Distinguish between different types of units
+    - Distinguish between different types of units (started)
     - Visualize health bars on units
     - Make visualizations for attacks that make clear who is attacking whom
     - Show how many of each kind of unit each player has
-    - Implement a scrubber (Mostly done)
+    - Implement a scrubber (mostly done)
 -->
 
 <!-- Here's a simple stylesheet to make things look a bit better. -->
@@ -96,6 +96,9 @@ General TODOs:
     <h2 id="winner"></h2>
 
 <script>
+
+var mousedown_listener, mouseup_listener, input_listener, needs_clear = false;
+
 var BORDER_WIDTH = 0.2;
 var canvas = document.getElementById('earth');
 var canvasMars = document.getElementById('mars');
@@ -122,6 +125,8 @@ corresponding to the file.
  which are strings corresponding to JSON objects,
  being parsed.)
 */
+var current_anim_timeout = null;
+
 function visualize(data) {
     // Globals
     var TEAMS = ['Red', 'Blue'];
@@ -130,7 +135,10 @@ function visualize(data) {
     var maturation_times = {};
     var earth_map, mars_map;
     var reserves = [[100, 100]]; // Precomped for every turn
-    var current_anim_timeout = null;
+
+    if (current_anim_timeout != null) {
+        clearTimeout(current_anim_timeout);
+    }
     
     // Whether or not the slider is currently being held down.
     // This is used because the input event only fires
@@ -426,7 +434,15 @@ function visualize(data) {
     }
     
     // A bunch of slider event handlers
-    document.getElementById('turnslider').addEventListener('input', function(e) {
+    if (needs_clear) {
+        document.getElementById('turnslider').removeEventListener('input', input_listener);
+        document.getElementById('turnslider').removeEventListener('mousedown', mousedown_listener);
+        document.getElementById('turnslider').removeEventListener('mouseup', mouseup_listener);
+    }
+
+    needs_clear = true;
+
+    document.getElementById('turnslider').addEventListener('input', input_listener = function(e) {
         // Clear current timeout
         clearTimeout(current_anim_timeout);
         
@@ -435,11 +451,11 @@ function visualize(data) {
         renderGlobal(t);
     });
     
-    document.getElementById('turnslider').addEventListener('mousedown', function(e) {
+    document.getElementById('turnslider').addEventListener('mousedown', mousedown_listener = function(e) {
         slider_held = true;
     });
     
-    document.getElementById('turnslider').addEventListener('mouseup', function(e) {
+    document.getElementById('turnslider').addEventListener('mouseup', mouseup_listener = function(e) {
         slider_held = false; 
     });
     
